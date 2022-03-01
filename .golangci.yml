@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: 2021 Danil Korennykh <bluskript@gmail.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+run:
+  timeout: 5m
+  skip-files:
+    - ".*\\.pb\\.go"
+    - ".*\\.hrpc\\.*.go"
+linters:
+  enable-all: true
+  disable:
+    - exhaustivestruct
+    - gomnd
+    # deprecated modules
+    - golint
+    - maligned
+    - scopelint
+    - interfacer
+# linters-settings:
+# wrapcheck:
+# ignoreSigs:
+# - api.NewError(
