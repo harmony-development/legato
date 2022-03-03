@@ -1,0 +1,18 @@
+version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: github.com/harmony-development/legato/gen
+plugins:
+  - name: go-vtproto
+    out: gen
+    opt:
+      - paths=source_relative
+      - features=size+marshal+unmarshal+pool
+  - name: go
+    out: gen
+    opt: paths=source_relative
+  - name: hrpc
+    out: gen
+    opt:
+      - go_server

@@ -1,19 +1,33 @@
-package main
+package config
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
-
-	_ "embed"
+	"path/filepath"
 
 	"github.com/go-playground/validator/v10"
+	strutil "github.com/harmony-development/legato/util"
 	"gopkg.in/yaml.v2"
 )
 
+// RedisConfig is the config for the Redis database.
+type RedisConfig struct {
+	URL string `yaml:"url" validate:"required"`
+}
+
+type PostgresConfig struct {
+	URL string `vaml:"url"`
+}
+
+// Config is the root config structure.
 type Config struct {
-	Port int16 `yaml:"port" validate:"required,gte=1,lte=65535"`
+	Port         int16 `yaml:"port" validate:"required,gte=1,lte=65535"`
+	UseLocalCORS bool  `yaml:"useLocalCORS" validate:"required"`
+	Redis        RedisConfig
+	Postgres     PostgresConfig
 }
 
 //go:embed default-config.yml
@@ -25,7 +39,9 @@ var (
 )
 
 // ReadConfig reads the config file and returns a Config struct.
-func ReadConfig(path string) (*Config, error) {
+func ReadConfig() (*Config, error) {
+	path := filepath.Clean(strutil.FirstNonEmpty(os.Getenv("CONFIG_PATH"), "./config.yml"))
+
 	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -51,10 +67,10 @@ func ReadConfig(path string) (*Config, error) {
 
 		acc := ""
 		for _, err := range validationErr {
-			acc += fmt.Sprintf("%s failed to meet requirement %s %s\n", err.Field(), err.Tag(), err.Param())
+			acc += fmt.Sprintf("%s failed to meet requirement %s %s\n", err.Namespace(), err.Tag(), err.Param())
 		}
 
-		return nil, fmt.Errorf("%w: %s", errValidationFailed, acc)
+		return nil, fmt.Errorf("%w: \n%s", errValidationFailed, acc)
 	}
 
 	return &cfg, nil

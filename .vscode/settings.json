@@ -1,6 +1,11 @@
 {
   "go.useLanguageServer": true,
+  "go.alternateTools": {
+    "go": "$HOME/go/bin/go1.18beta2"
+  },
   "gopls": {
-    "formatting.gofumpt": true
-  }
+    "formatting.gofumpt": true,
+    "ui.semanticTokens": true
+  },
+  "go.lintTool": "golangci-lint"
 }

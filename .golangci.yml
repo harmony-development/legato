@@ -6,17 +6,30 @@ run:
   skip-files:
     - ".*\\.pb\\.go"
     - ".*\\.hrpc\\.*.go"
+issues:
+  exclude-use-default: false
 linters:
   enable-all: true
   disable:
     - exhaustivestruct
     - gomnd
+    - tagliatelle
     # deprecated modules
     - golint
     - maligned
     - scopelint
     - interfacer
-# linters-settings:
+linters-settings:
+  wrapcheck:
+    ignorePackageGlobs:
+      - "github.com/harmony-development/legato/*"
+  stylecheck:
+    dot-import-whitelist:
+      - "github.com/harmony-development/legato/db/models"
+  revive:
+    rules:
+      - name: dot-imports
+        disabled: true
 # wrapcheck:
 # ignoreSigs:
 # - api.NewError(

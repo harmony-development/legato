@@ -1,0 +1,11 @@
+wipe = true
+output = "db/models"
+add-global-variants = true
+no-tests = true
+
+[psql]
+user = "amadeus"
+dbname = "amadeus"
+host = "localhost"
+sslmode = "disable"
+blacklist = ["meta"]

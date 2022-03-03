@@ -1,25 +1,25 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"flag"
+	"os"
 
+	"github.com/google/subcommands"
+	"github.com/harmony-development/legato/cmd"
 	"github.com/joho/godotenv"
 )
 
 func main() {
-	if err := Start(); err != nil {
-		fmt.Println(err)
-	}
-}
-
-// Start starts the server.
-func Start() error {
 	_ = godotenv.Load()
 
-	cfg, err := ReadConfig("./config.yml")
-	if err != nil {
-		return err
-	}
+	subcommands.Register(subcommands.HelpCommand(), "")
+	subcommands.Register(subcommands.FlagsCommand(), "")
+	subcommands.Register(subcommands.CommandsCommand(), "")
+	subcommands.Register(&cmd.StartCmd{}, "")
+	subcommands.Register(&cmd.MigrateCmd{}, "")
 
-	return nil
+	flag.Parse()
+
+	os.Exit(int(subcommands.Execute(context.Background())))
 }
