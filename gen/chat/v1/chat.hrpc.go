@@ -57,7 +57,7 @@ type ChatService[T context.Context] interface {
 	RemoveReaction(T, *RemoveReactionRequest) (*RemoveReactionResponse, error)
 	GrantOwnership(T, *GrantOwnershipRequest) (*GrantOwnershipResponse, error)
 	GiveUpOwnership(T, *GiveUpOwnershipRequest) (*GiveUpOwnershipResponse, error)
-	StreamEvents(T, chan *StreamEventsRequest) (chan *StreamEventsResponse, error)
+	StreamEvents(T, chan *StreamEventsRequest, chan *StreamEventsResponse) error
 }
 type ChatServiceHandler[T context.Context] struct {
 	Impl ChatService[T]
@@ -441,9 +441,11 @@ func (h *ChatServiceHandler[T]) StreamRoutes() map[string]goserver.StreamMethodD
 	return map[string]goserver.StreamMethodData[T]{
 		"protocol.chat.v1.ChatService/StreamEvents": {
 			MethodData: goserver.MethodData{Input: &StreamEventsRequest{}, Output: &StreamEventsResponse{}},
-			Handler: func(c T, msg chan goserver.VTProtoMessage) (chan goserver.VTProtoMessage, error) {
-					res, err := h.Impl.StreamEvents(c, goserver.FromProtoChannel[*StreamEventsRequest](msg))
-					return goserver.ToProtoChannel(res), err
+			Handler: func(c T, msg chan goserver.VTProtoMessage, res chan goserver.VTProtoMessage) (error) {
+					ch := make(chan *StreamEventsResponse)
+					goserver.ToProtoChannel(ch, res)
+					err := h.Impl.StreamEvents(c, goserver.FromProtoChannel[*StreamEventsRequest](msg), ch)
+					return err
 				},
 		},
 	}

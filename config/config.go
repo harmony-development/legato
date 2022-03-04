@@ -22,12 +22,19 @@ type PostgresConfig struct {
 	URL string `vaml:"url"`
 }
 
+type AuthConfig struct {
+	DisableRegistration bool `yaml:"disableRegistration"`
+	TokenLength         int  `yaml:"tokenLength" validate:"required,min=4"`
+}
+
 // Config is the root config structure.
 type Config struct {
-	Port         int16 `yaml:"port" validate:"required,gte=1,lte=65535"`
-	UseLocalCORS bool  `yaml:"useLocalCORS" validate:"required"`
-	Redis        RedisConfig
-	Postgres     PostgresConfig
+	Port         int16          `yaml:"port" validate:"required,gte=1,lte=65535"`
+	UseLocalCORS bool           `yaml:"useLocalCORS" validate:"required"`
+	CleanLogs    bool           `yaml:"cleanLogs" validate:"required"`
+	Redis        RedisConfig    `yaml:"redis" validate:"required"`
+	Postgres     PostgresConfig `yaml:"postgres" validate:"required"`
+	Auth         AuthConfig     `yaml:"auth" validate:"required"`
 }
 
 //go:embed default-config.yml

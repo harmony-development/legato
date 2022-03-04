@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+message AuthMessage {
+  message Session {
+    string session_id = 1;
+    uint64 user_id = 2;
+  }
+
+  oneof message {
+    int32 step_id = 1;
+    Session session = 2;
+  };
+}

@@ -39,7 +39,10 @@ func (cmd *StartCmd) start() error {
 		return err
 	}
 
-	s := server.New(cfg)
+	s, err := server.New(cfg)
+	if err != nil {
+		return err
+	}
 
 	return s.Start()
 }

@@ -1,15 +1,17 @@
 package server
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/harmony-development/legato/adapter"
 	"github.com/harmony-development/legato/api"
 	authv1impl "github.com/harmony-development/legato/api/auth/v1"
 	"github.com/harmony-development/legato/config"
+	"github.com/harmony-development/legato/db"
 	authv1 "github.com/harmony-development/legato/gen/auth/v1"
 )
 
@@ -20,24 +22,32 @@ type Server struct {
 }
 
 // New creates a new server instance.
-func New(config *config.Config) *Server {
+func New(config *config.Config) (*Server, error) {
 	app := fiber.New()
 
-	app.Use(recover.New(recover.Config{
-		EnableStackTrace: true,
-	}))
+	app.Use(logger.New())
+	app.Use(Recover(config.CleanLogs))
 
 	if config.UseLocalCORS {
-		app.Use(cors.New())
+		app.Use(cors.New(cors.Config{
+			MaxAge: 9600,
+		}))
 	}
 
 	app.Use(func(c *fiber.Ctx) error {
-		c.SetUserContext(api.LegatoContext{})
+		c.SetUserContext(api.LegatoContext{
+			Context: c.Context(),
+		})
 		return c.Next()
 	})
 
+	db, err := db.New(context.TODO(), config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
 	authService := &authv1.AuthServiceHandler[api.LegatoContext]{
-		Impl: &authv1impl.AuthV1{},
+		Impl: authv1impl.New(db, config),
 	}
 
 	adapter.RegisterHandler[api.LegatoContext](app, authService)
@@ -45,7 +55,7 @@ func New(config *config.Config) *Server {
 	return &Server{
 		app,
 		config,
-	}
+	}, nil
 }
 
 // Start starts the server.

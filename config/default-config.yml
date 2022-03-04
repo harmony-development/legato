@@ -1,5 +1,6 @@
 port: 2289
 useLocalCORS: true
+cleanLogs: true
 postgres:
   url: ""
 redis:
