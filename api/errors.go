@@ -35,15 +35,20 @@ var (
 	ErrorInternalServerError  = NewError("h.internal-error", "internal server error")
 )
 
-type Error hrpcv1.Error
+type Error struct {
+	HError hrpcv1.Error
+}
 
 func (e *Error) Error() string {
-	return e.HumanMessage
+	return e.HError.HumanMessage
 }
 
 func NewError(code string, humanMessage string) error {
 	return &Error{
-		Identifier:   code,
-		HumanMessage: humanMessage,
+		HError: hrpcv1.Error{
+			Identifier:   code,
+			HumanMessage: humanMessage,
+			Details:      nil,
+		},
 	}
 }

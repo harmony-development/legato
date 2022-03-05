@@ -10,6 +10,7 @@ import (
 	"github.com/harmony-development/legato/adapter"
 	"github.com/harmony-development/legato/api"
 	authv1impl "github.com/harmony-development/legato/api/auth/v1"
+	"github.com/harmony-development/legato/api/middleware"
 	"github.com/harmony-development/legato/config"
 	"github.com/harmony-development/legato/db"
 	authv1 "github.com/harmony-development/legato/gen/auth/v1"
@@ -46,11 +47,14 @@ func New(config *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
+	middlewareHandler := middleware.NewHandler(db)
+	app.Use(middlewareHandler.ErrorHandler())
+
 	authService := &authv1.AuthServiceHandler[api.LegatoContext]{
 		Impl: authv1impl.New(db, config),
 	}
 
-	adapter.RegisterHandler[api.LegatoContext](app, authService)
+	adapter.RegisterHandler[api.LegatoContext](middlewareHandler, app, authService)
 
 	return &Server{
 		app,

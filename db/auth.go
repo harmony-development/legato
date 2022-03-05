@@ -8,21 +8,37 @@ import (
 	"github.com/harmony-development/legato/gen"
 )
 
+func (db *DB) SaveSession(ctx context.Context, sessionID string, token string, userID uint64) error {
+	if err := db.PublishAuth(ctx, sessionID, &gen.AuthMessage{
+		Message: &gen.AuthMessage_Session_{
+			Session: &gen.AuthMessage_Session{
+				SessionId: token,
+				UserId:    userID,
+			},
+		},
+	}); err != nil {
+		return Wrap(err, "failed to publish session")
+	}
+
+	return TryWrap(db.rdb.Set(ctx, subkey(sessionsPrefix, token), userID, 0).Err(), "failed to save session")
+}
+
+func (db *DB) GetUserForSession(ctx context.Context, sessionID string) (uint64, error) {
+	res, err := db.rdb.Get(ctx, subkey(sessionsPrefix, sessionID)).Uint64()
+
+	return res, TryWrap(err, "failed to get user for session")
+}
+
 func (db *DB) PublishAuth(ctx context.Context, session string, msg *gen.AuthMessage) error {
 	msgBytes, err := msg.MarshalVT()
 	if err != nil {
 		return Wrap(err, "failed to marshal auth publish message")
 	}
 
-	return TryWrap(db.rdb.Publish(ctx, "auth:"+session, string(msgBytes)).Err(), "failed to publish session")
-}
-
-func (db *DB) PublishSession(ctx context.Context, sessionID string, msg *gen.AuthMessage_Session) error {
-	return db.PublishAuth(ctx, sessionID, &gen.AuthMessage{
-		Message: &gen.AuthMessage_Session_{
-			Session: msg,
-		},
-	})
+	return TryWrap(
+		db.rdb.Publish(ctx, subkey(authStepPrefix, session), string(msgBytes)).Err(),
+		"failed to publish session",
+	)
 }
 
 // SetAuthStep saves to redis the auth session and step the user is on.
@@ -38,7 +54,7 @@ func (db *DB) SetAuthStep(ctx context.Context, sessionID string, step int) error
 	return TryWrap(
 		db.rdb.Set(
 			ctx,
-			"sessions:"+sessionID,
+			subkey(authStepPrefix, sessionID),
 			step,
 			6*time.Hour,
 		).Err(),
@@ -47,7 +63,7 @@ func (db *DB) SetAuthStep(ctx context.Context, sessionID string, step int) error
 }
 
 func (db *DB) GetAuthStep(ctx context.Context, sessionID string) (int, error) {
-	res, err := db.rdb.Get(ctx, "sessions:"+sessionID).Int()
+	res, err := db.rdb.Get(ctx, subkey(authStepPrefix, sessionID)).Int()
 	if err != nil {
 		return 0, fmt.Errorf("failed to get auth step for %s: %w", sessionID, err)
 	}
@@ -59,7 +75,7 @@ func (db *DB) StreamUserSteps(ctx context.Context, sessionID string) chan *gen.A
 	ch := make(chan *gen.AuthMessage)
 
 	go func() {
-		sub := db.rdb.Subscribe(ctx, "auth:"+sessionID).Channel()
+		sub := db.rdb.Subscribe(ctx, subkey(authStepPrefix, sessionID)).Channel()
 		for msg := range sub {
 			res := &gen.AuthMessage{}
 

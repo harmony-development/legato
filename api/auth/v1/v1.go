@@ -141,7 +141,7 @@ func (v1 *AuthV1) StepBack(c api.LegatoContext, req *authv1.StepBackRequest) (*a
 }
 
 func (v1 *AuthV1) CheckLoggedIn(_ api.LegatoContext, _ *authv1.CheckLoggedInRequest) (*authv1.CheckLoggedInResponse, error) {
-	panic("not implemented") // TODO: Implement
+	return nil, nil
 }
 
 func (v1 *AuthV1) StreamSteps(ctx api.LegatoContext, stream chan *authv1.StreamStepsRequest, res chan *authv1.StreamStepsResponse) error {
