@@ -1,0 +1,9 @@
+drop table guild_members;
+drop table guild_list;
+drop table messages;
+drop type message_override;
+drop table channels;
+drop table guilds;
+drop table users;
+drop function generate_id;
+drop sequence global_id_seq;

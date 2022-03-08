@@ -30,7 +30,7 @@ func (v1 *AuthV1) handleRegister(ctx context.Context, sessionID string, fields [
 
 	passwordHash := rawHash.Encode()
 
-	id, err := v1.db.SaveUser(ctx, email, username, passwordHash)
+	id, err := v1.db.CreateUser(ctx, email, username, passwordHash)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {

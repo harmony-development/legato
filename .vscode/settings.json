@@ -7,5 +7,11 @@
     "formatting.gofumpt": true,
     "ui.semanticTokens": true
   },
-  "go.lintTool": "golangci-lint"
+  "go.lintTool": "golangci-lint",
+  "explorer.experimental.fileNesting.enabled": true,
+  "explorer.experimental.fileNesting.expand": false,
+  "explorer.experimental.fileNesting.patterns": {
+    "go.mod": "go.sum, buf.gen.yaml, .golangci.yml, .air.toml, sqlc.yaml",
+    ".gitignore": "LICENSE"
+  }
 }

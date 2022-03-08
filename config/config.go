@@ -8,8 +8,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/go-playground/locales/en"
+	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
+	en_translations "github.com/go-playground/validator/v10/translations/en"
 	strutil "github.com/harmony-development/legato/util"
+	"github.com/samber/lo"
 	"gopkg.in/yaml.v2"
 )
 
@@ -67,18 +71,49 @@ func ReadConfig() (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
-	if err := validator.New().Struct(cfg); err != nil {
-		var validationErr validator.ValidationErrors
+	v, t, err := newValidator()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create validator: %w", err)
+	}
 
-		errors.As(err, &validationErr)
-
-		acc := ""
-		for _, err := range validationErr {
-			acc += fmt.Sprintf("%s failed to meet requirement %s %s\n", err.Namespace(), err.Tag(), err.Param())
-		}
-
-		return nil, fmt.Errorf("%w: \n%s", errValidationFailed, acc)
+	if err := v.Struct(cfg); err != nil {
+		validationErrors := lo.Reduce(
+			translateError(err, t),
+			func(str string, e error, i int) string {
+				str += "\n" + e.Error()
+				return str
+			},
+			"",
+		)
+		return nil, fmt.Errorf("%w: %s", errValidationFailed, validationErrors)
 	}
 
 	return &cfg, nil
+}
+
+func newValidator() (*validator.Validate, ut.Translator, error) {
+	v := validator.New()
+	english := en.New()
+	uni := ut.New(english, english)
+	trans, _ := uni.GetTranslator("en")
+	if err := en_translations.RegisterDefaultTranslations(v, trans); err != nil {
+		return nil, nil, fmt.Errorf("failed to get en locale: %w", err)
+	}
+	return v, trans, nil
+}
+
+func translateError(err error, trans ut.Translator) (errs []error) {
+	if err == nil {
+		return nil
+	}
+
+	var validatorErrs validator.ValidationErrors
+	if errors.As(err, &validatorErrs) {
+		for _, e := range validatorErrs {
+			translatedErr := fmt.Errorf(e.Translate(trans))
+			errs = append(errs, translatedErr)
+		}
+	}
+
+	return errs
 }

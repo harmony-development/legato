@@ -3,17 +3,22 @@ package db
 
 import (
 	"context"
-	"fmt"
+	"embed"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/harmony-development/legato/config"
+	"github.com/harmony-development/legato/db/models"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
+//go:embed sqlc/migrations/*.sql
+var Migrations embed.FS
+
 // DB is the database structure.
 type DB struct {
-	rdb  *redis.Client
-	conn *pgxpool.Pool
+	Rdb      *redis.Client
+	Postgres *pgxpool.Pool
+	models   *models.Queries
 }
 
 // New creates a new DB instance.
@@ -31,23 +36,8 @@ func New(ctx context.Context, cfg *config.Config) (*DB, error) {
 	}
 
 	return &DB{
-		rdb:  rdb,
-		conn: conn,
+		Rdb:      rdb,
+		Postgres: conn,
+		models:   models.New(conn),
 	}, nil
-}
-
-func (db *DB) GetCurrentMigration(ctx context.Context) (int, error) {
-	var migration int
-	err := db.conn.QueryRow(ctx, "SELECT current_migration FROM meta").Scan(&migration)
-
-	return migration, TryWrap(err, "failed to get current migration")
-}
-
-func (db *DB) RawExec(c context.Context, query string, args ...interface{}) error {
-	_, err := db.conn.Exec(c, query, args...)
-	if err != nil {
-		return fmt.Errorf("failed to run raw query: %w", err)
-	}
-
-	return nil
 }

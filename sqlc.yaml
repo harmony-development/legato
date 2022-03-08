@@ -1,0 +1,18 @@
+version: 1
+packages:
+  - path: "./db/models"
+    name: "models"
+    sql_package: "pgx/v4"
+    engine: "postgresql"
+    schema: "./db/sqlc/migrations"
+    queries: "./db/sqlc/queries"
+overrides:
+  - db_type: "text"
+    go_type:
+      type: "string"
+      pointer: true
+    nullable: true
+  - go_type: "uint64"
+    db_type: "pg_catalog.int8"
+  - go_type: "uint64"
+    db_type: "bigint"

@@ -25,6 +25,7 @@ func main() {
 	subcommands.Register(subcommands.CommandsCommand(), "")
 	subcommands.Register(&cmd.StartCmd{}, "")
 	subcommands.Register(&cmd.MigrateCmd{}, "")
+	subcommands.Register(&cmd.WipeCMD{}, "")
 
 	flag.Parse()
 

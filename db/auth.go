@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/harmony-development/legato/db/models"
 	"github.com/harmony-development/legato/gen"
 )
 
@@ -20,11 +21,11 @@ func (db *DB) SaveSession(ctx context.Context, sessionID string, token string, u
 		return Wrap(err, "failed to publish session")
 	}
 
-	return TryWrap(db.rdb.Set(ctx, subkey(sessionsPrefix, token), userID, 0).Err(), "failed to save session")
+	return TryWrap(db.Rdb.Set(ctx, subkey(sessionsPrefix, token), userID, 0).Err(), "failed to save session")
 }
 
 func (db *DB) GetUserForSession(ctx context.Context, sessionID string) (uint64, error) {
-	res, err := db.rdb.Get(ctx, subkey(sessionsPrefix, sessionID)).Uint64()
+	res, err := db.Rdb.Get(ctx, subkey(sessionsPrefix, sessionID)).Uint64()
 
 	return res, TryWrap(err, "failed to get user for session")
 }
@@ -36,7 +37,7 @@ func (db *DB) PublishAuth(ctx context.Context, session string, msg *gen.AuthMess
 	}
 
 	return TryWrap(
-		db.rdb.Publish(ctx, subkey(authStepPrefix, session), string(msgBytes)).Err(),
+		db.Rdb.Publish(ctx, subkey(authStepPrefix, session), string(msgBytes)).Err(),
 		"failed to publish session",
 	)
 }
@@ -52,7 +53,7 @@ func (db *DB) SetAuthStep(ctx context.Context, sessionID string, step int) error
 	}
 
 	return TryWrap(
-		db.rdb.Set(
+		db.Rdb.Set(
 			ctx,
 			subkey(authStepPrefix, sessionID),
 			step,
@@ -63,7 +64,7 @@ func (db *DB) SetAuthStep(ctx context.Context, sessionID string, step int) error
 }
 
 func (db *DB) GetAuthStep(ctx context.Context, sessionID string) (int, error) {
-	res, err := db.rdb.Get(ctx, subkey(authStepPrefix, sessionID)).Int()
+	res, err := db.Rdb.Get(ctx, subkey(authStepPrefix, sessionID)).Int()
 	if err != nil {
 		return 0, fmt.Errorf("failed to get auth step for %s: %w", sessionID, err)
 	}
@@ -75,7 +76,7 @@ func (db *DB) StreamUserSteps(ctx context.Context, sessionID string) chan *gen.A
 	ch := make(chan *gen.AuthMessage)
 
 	go func() {
-		sub := db.rdb.Subscribe(ctx, subkey(authStepPrefix, sessionID)).Channel()
+		sub := db.Rdb.Subscribe(ctx, subkey(authStepPrefix, sessionID)).Channel()
 		for msg := range sub {
 			res := &gen.AuthMessage{}
 
@@ -92,39 +93,17 @@ func (db *DB) StreamUserSteps(ctx context.Context, sessionID string) chan *gen.A
 	return ch
 }
 
-// SaveUser saves a user to the database.
-func (db *DB) SaveUser(ctx context.Context, email string, username string, passwordHash []byte) (uint64, error) {
-	res := db.conn.QueryRow(
-		ctx,
-		"INSERT INTO users (id, email, username, password_hash) VALUES (generate_id(), $1, $2, $3) RETURNING id",
-		email, username, passwordHash,
-	)
+// CreateUser saves a user to the database.
+func (db *DB) CreateUser(ctx context.Context, email string, username string, passwordHash []byte) (uint64, error) {
+	userID, err := db.models.CreateUser(ctx, models.CreateUserParams{
+		Email:        &email,
+		Username:     username,
+		PasswordHash: passwordHash,
+	})
 
-	var id uint64
-
-	if err := res.Scan(&id); err != nil {
-		return 0, fmt.Errorf("failed to save user: %w", err)
-	}
-
-	return id, nil
+	return userID, TryWrap(err, "failed to create user")
 }
 
-func (db *DB) GetUserByEmail(ctx context.Context, email string) (*UserAccount, error) {
-	account := UserAccount{}
-
-	err := db.conn.
-		QueryRow(ctx, "SELECT id, email, username, password_hash, created FROM users WHERE email = $1 LIMIT 1", email).
-		Scan(&account.Id, &account.Email, &account.Username, &account.Password_Hash, &account.Created)
-
-	return &account, TryWrap(err, "failed to get user by email")
-}
-
-func (db *DB) GetUserByID(ctx context.Context, id int64) (*User, error) {
-	user := User{}
-
-	err := db.conn.
-		QueryRow(ctx, "SELECT id, username, created FROM users WHERE id = $1 LIMIT 1", id).
-		Scan(&user.Id, &user.Username, &user.Created)
-
-	return &user, TryWrap(err, "failed to get user by id")
+func (db *DB) GetUserByID(ctx context.Context, id uint64) (models.User, error) {
+	return db.models.GetUserById(ctx, id)
 }

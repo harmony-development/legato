@@ -1,16 +1,3 @@
-package migrations
-
-import (
-	"context"
-
-	"github.com/harmony-development/legato/db"
-)
-
-func Migration0(db *db.DB) error {
-	return db.RawExec(context.Background(), Migration0Query)
-}
-
-var Migration0Query = `
 create table users (
 	id bigint not null primary key,
 	username text unique not null,
@@ -22,23 +9,30 @@ create table users (
 	password_hash bytea,
 	created timestamp not null default (current_timestamp at time zone 'utc'),
 	check (
-			(
-					host is not null and remote_id is not null and 
-					email is null and password_hash is null
-			) or (
-					host is null and remote_id is null and
-					email is not null and password_hash is not null
-			)
+		(
+			host is not null
+			and remote_id is not null
+			and email is null
+			and password_hash is null
+		)
+		or (
+			host is null
+			and remote_id is null
+			and email is not null
+			and password_hash is not null
+		)
 	)
 );
+
 create table guilds (
 	id bigint not null primary key,
 	name text not null,
 	picture text,
 	type smallint not null,
-	banned_users bigint[] not null default '{}',
+	banned_users bigint [] not null default '{}',
 	created timestamp not null default (current_timestamp at time zone 'utc')
 );
+
 create table guild_members (
 	user_id bigint not null references users(id) on delete cascade,
 	guild_id bigint not null references guilds(id) on delete cascade,
@@ -46,6 +40,7 @@ create table guild_members (
 	joined timestamp not null default (current_timestamp at time zone 'utc'),
 	primary key (user_id, guild_id)
 );
+
 create table guild_list (
 	user_id bigint not null references users(id) on delete cascade,
 	guild_id bigint not null,
@@ -53,6 +48,7 @@ create table guild_list (
 	position text not null,
 	primary key (user_id, guild_id, host)
 );
+
 create table if not exists channels (
 	id bigint primary key unique not null,
 	created_at timestamp not null default (current_timestamp at time zone 'utc'),
@@ -61,11 +57,9 @@ create table if not exists channels (
 	kind smallint not null,
 	position text not null
 );
-create type message_override as (
-	username text,
-	avatar text,
-	reason text
-);
+
+create type message_override as (username text, avatar text, reason text);
+
 create table if not exists messages (
 	id bigint primary key,
 	channel_id bigint references channels (id) on delete cascade,
@@ -80,10 +74,7 @@ create table if not exists messages (
 	override message_override,
 	attachments text []
 );
-create table meta (
-	current_migration int not null
-);
-insert into meta values (0);
+
 CREATE SEQUENCE public.global_id_seq;
 CREATE OR REPLACE FUNCTION public.generate_id()
 	RETURNS bigint
@@ -106,4 +97,3 @@ BEGIN
 return result;
 END;
 $BODY$;
-`
