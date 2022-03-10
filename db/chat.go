@@ -159,7 +159,53 @@ func (db *DB) GetGuildMember(ctx context.Context) {
 func (db *DB) HasSharedGuilds(ctx context.Context) {
 }
 
-func (db *DB) RemoveGuildMember(ctx context.Context) {
+func (db *DB) RemoveGuildMember(ctx context.Context, guildID uint64, userID uint64, reason chatv1.LeaveReason) error {
+	if err := db.Postgres.BeginTxFunc(ctx, pgx.TxOptions{}, func(tx pgx.Tx) error {
+		m := db.models.WithTx(tx)
+
+		if err := m.RemoveGuildMember(ctx, models.RemoveGuildMemberParams{
+			UserID:  userID,
+			GuildID: guildID,
+		}); err != nil {
+			return Wrap(err, "failed to remove guild member")
+		}
+
+		if err := m.RemoveGuildFromList(ctx, models.RemoveGuildFromListParams{
+			UserID:  userID,
+			GuildID: guildID,
+		}); err != nil {
+			return Wrap(err, "failed to remove guild from list")
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	if err := db.PublishChatEvent(ctx, guildID, &chatv1.StreamEvent{
+		Event: &chatv1.StreamEvent_LeftMember{
+			LeftMember: &chatv1.StreamEvent_MemberLeft{
+				MemberId:    userID,
+				GuildId:     guildID,
+				LeaveReason: reason,
+			},
+		},
+	}); err != nil {
+		return err
+	}
+
+	if err := db.PublishUserEvent(ctx, userID, &chatv1.StreamEvent{
+		Event: &chatv1.StreamEvent_GuildRemovedFromList_{
+			GuildRemovedFromList: &chatv1.StreamEvent_GuildRemovedFromList{
+				GuildId:    guildID,
+				Homeserver: "",
+			},
+		},
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (db *DB) RemoveGuildFromList(ctx context.Context) {

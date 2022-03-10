@@ -2,8 +2,6 @@
 package chatv1impl
 
 import (
-	"fmt"
-
 	"github.com/harmony-development/legato/api"
 	"github.com/harmony-development/legato/db"
 	"github.com/harmony-development/legato/db/models"
@@ -186,8 +184,17 @@ func (v1 *ChatV1) JoinGuild(_ *api.LegatoContext, _ *chatv1.JoinGuildRequest) (*
 	panic("not implemented") // TODO: Implement
 }
 
-func (v1 *ChatV1) LeaveGuild(_ *api.LegatoContext, _ *chatv1.LeaveGuildRequest) (*chatv1.LeaveGuildResponse, error) {
-	panic("not implemented") // TODO: Implement
+func (v1 *ChatV1) LeaveGuild(c *api.LegatoContext, req *chatv1.LeaveGuildRequest) (*chatv1.LeaveGuildResponse, error) {
+	if err := v1.db.RemoveGuildMember(
+		c,
+		req.GuildId,
+		c.UserID,
+		chatv1.LeaveReason_LEAVE_REASON_WILLINGLY_UNSPECIFIED,
+	); err != nil {
+		return nil, err
+	}
+
+	return &chatv1.LeaveGuildResponse{}, nil
 }
 
 func (v1 *ChatV1) TriggerAction(_ *api.LegatoContext, _ *chatv1.TriggerActionRequest) (*chatv1.TriggerActionResponse, error) {
@@ -304,7 +311,6 @@ func (v1 *ChatV1) StreamEvents(c *api.LegatoContext, reqs chan *chatv1.StreamEve
 		}),
 	)
 	for ev := range streamEvents {
-		fmt.Println(ev)
 		resp <- &chatv1.StreamEventsResponse{
 			Event: &chatv1.StreamEventsResponse_Chat{
 				Chat: ev,
