@@ -25,6 +25,7 @@ require (
 	github.com/lib/pq v1.10.4 // indirect
 	github.com/opencontainers/image-spec v1.0.2 // indirect
 	golang.org/x/exp v0.0.0-20220309201404-e19e41d68951 // indirect
+	gopkg.in/typ.v2 v2.0.0 // indirect
 )
 
 require (

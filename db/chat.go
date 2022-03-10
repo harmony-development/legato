@@ -56,6 +56,10 @@ func (db *DB) CreateGuild(ctx context.Context, name string, picture *string, own
 		}), "failed to add guild to list")
 	})
 
+	if err := db.SubscribeStream(ctx, ownerID, guildKey(guild.ID)); err != nil {
+		return guild, Wrap(err, "failed to subscribe to guild stream")
+	}
+
 	return guild, err
 }
 

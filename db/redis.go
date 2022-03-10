@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	goserver "github.com/harmony-development/hrpc/pkg/go-server"
@@ -16,6 +17,14 @@ const (
 
 func subkey(key string, subkeys ...string) string {
 	return key + ":" + strings.Join(subkeys, ":")
+}
+
+func guildKey(guildID uint64) string {
+	return subkey(chatPrefix, strconv.FormatUint(guildID, 10))
+}
+
+func profileKey(userID uint64) string {
+	return subkey(chatPrefix, strconv.FormatUint(userID, 10))
 }
 
 func (db *DB) publishStreamEvent(ctx context.Context, topic string, event goserver.VTProtoMessage) error {
