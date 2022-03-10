@@ -18,7 +18,7 @@ func (h *MiddlewareHandler) Auth(path string) fiber.Handler {
 		session := c.Get("Authorization")
 		if session == "" {
 			protocols := strings.Split(c.Get("Sec-WebSocket-Protocol"), ",")
-			session = protocols[len(protocols)-1]
+			session = protocols[len(protocols)-1][1:]
 		}
 		if session == "" {
 			return api.ErrorInvalidAuth

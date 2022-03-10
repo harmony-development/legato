@@ -18,7 +18,7 @@ func RegisterHandler[T context.Context](mid *middleware.MiddlewareHandler, route
 		router.All(route, mid.Auth(route), UnaryHandler(h))
 	}
 	for route, h := range handler.StreamRoutes() {
-		router.All(route, StreamHandler(h)).Use(mid.Auth(route))
+		router.All(route, mid.Auth(route), StreamHandler(h))
 	}
 }
 

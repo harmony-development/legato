@@ -23,6 +23,15 @@ func (v1 *ChatV1) CreateGuild(c *api.LegatoContext, req *chatv1.CreateGuildReque
 		return nil, err
 	}
 
+	v1.db.PublishUserEvent(c, c.UserID, &chatv1.StreamEvent{
+		Event: &chatv1.StreamEvent_GuildAddedToList_{
+			GuildAddedToList: &chatv1.StreamEvent_GuildAddedToList{
+				GuildId:    g.ID,
+				Homeserver: "",
+			},
+		},
+	})
+
 	return &chatv1.CreateGuildResponse{
 		GuildId: g.ID,
 	}, nil
