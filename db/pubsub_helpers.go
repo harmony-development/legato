@@ -9,22 +9,32 @@ import (
 )
 
 const (
-	authStepPrefix = "auth_state"
 	sessionsPrefix = "sessions"
+
+	authStepPrefix = "auth_state"
 	chatPrefix     = "chat"
 	profilePrefix  = "profile"
+	subPrefix      = "subs"
 )
 
 func subkey(key string, subkeys ...string) string {
 	return key + ":" + strings.Join(subkeys, ":")
 }
 
+func idsubkey(key string, id uint64) string {
+	return subkey(key, strconv.FormatUint(id, 10))
+}
+
+func subscribeKey(userID uint64) string {
+	return idsubkey(subPrefix, userID)
+}
+
 func guildKey(guildID uint64) string {
-	return subkey(chatPrefix, strconv.FormatUint(guildID, 10))
+	return idsubkey(chatPrefix, guildID)
 }
 
 func profileKey(userID uint64) string {
-	return subkey(chatPrefix, strconv.FormatUint(userID, 10))
+	return idsubkey(profilePrefix, userID)
 }
 
 func (db *DB) publishStreamEvent(ctx context.Context, topic string, event goserver.VTProtoMessage) error {

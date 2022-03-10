@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/harmony-development/legato/db/models"
+	chatv1 "github.com/harmony-development/legato/gen/chat/v1"
 	"github.com/jackc/pgx/v4"
 	"github.com/samber/lo"
 	"github.com/xissy/lexorank"
@@ -55,6 +56,17 @@ func (db *DB) CreateGuild(ctx context.Context, name string, picture *string, own
 			Position: newPos,
 		}), "failed to add guild to list")
 	})
+
+	if err := db.PublishUserEvent(ctx, ownerID, &chatv1.StreamEvent{
+		Event: &chatv1.StreamEvent_GuildAddedToList_{
+			GuildAddedToList: &chatv1.StreamEvent_GuildAddedToList{
+				GuildId:    guild.ID,
+				Homeserver: "",
+			},
+		},
+	}); err != nil {
+		return guild, Wrap(err, "failed to publish guild create event")
+	}
 
 	if err := db.SubscribeStream(ctx, ownerID, guildKey(guild.ID)); err != nil {
 		return guild, Wrap(err, "failed to subscribe to guild stream")

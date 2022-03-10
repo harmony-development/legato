@@ -4,17 +4,16 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
+	"sync"
 
 	chatv1 "github.com/harmony-development/legato/gen/chat/v1"
 	"github.com/samber/lo"
 )
 
+// SubscribeStream publishes a new command to subscribe a user to new topics.
 func (db *DB) SubscribeStream(ctx context.Context, userID uint64, topics ...string) error {
-	sub, ok := db.streams.Load(userID)
-	if ok {
-		return sub.Subscribe(ctx, topics...)
-	}
-	return nil // TODO: return error if not found...?
+	return TryWrap(db.Rdb.Publish(ctx, subscribeKey(userID), strings.Join(topics, ",")).Err(), "failed to publish subscribe command")
 }
 
 func (db *DB) PublishChatEvent(ctx context.Context, guildID uint64, event *chatv1.StreamEvent) error {
@@ -41,13 +40,28 @@ func (db *DB) StreamChatEvents(ctx context.Context, userID uint64, guilds []uint
 			topics...,
 		)
 
-		db.streams.Store(userID, sub)
-
 		defer func() {
 			if err := sub.Close(); err != nil {
 				fmt.Println("failed to close auth subscription", err)
 			}
 			close(ch)
+		}()
+
+		l := sync.RWMutex{}
+
+		go func() {
+			handler := db.Rdb.Subscribe(ctx, subscribeKey(userID))
+			defer func() {
+				if err := handler.Close(); err != nil {
+					fmt.Println("failed to close handler: %w", err)
+				}
+			}()
+
+			for msg := range handler.Channel() {
+				l.Lock()
+				sub.Subscribe(ctx, strings.Split(msg.Payload, ",")...)
+				l.Unlock()
+			}
 		}()
 
 		for msg := range sub.Channel() {

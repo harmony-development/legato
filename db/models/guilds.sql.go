@@ -148,7 +148,7 @@ func (q *Queries) GetChannelList(ctx context.Context, guildID uint64) ([]Channel
 }
 
 const getGuildList = `-- name: GetGuildList :many
-select guild_id, host, position from guild_list where user_id = $1 order by position desc
+select guild_id, host, position from guild_list where user_id = $1 order by position asc
 `
 
 type GetGuildListRow struct {
@@ -272,7 +272,7 @@ func (q *Queries) GetGuildsById(ctx context.Context, dollar_1 []uint64) ([]GetGu
 }
 
 const getTopGuild = `-- name: GetTopGuild :one
-select position from guild_list where user_id = $1 order by position desc limit 1
+select position from guild_list where user_id = $1 order by position asc limit 1
 `
 
 func (q *Queries) GetTopGuild(ctx context.Context, userID uint64) (string, error) {

@@ -9,7 +9,6 @@ import (
 	"github.com/harmony-development/legato/config"
 	"github.com/harmony-development/legato/db/models"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"gopkg.in/typ.v2"
 )
 
 //go:embed sqlc/migrations/*.sql
@@ -20,7 +19,6 @@ type DB struct {
 	Rdb      *redis.Client
 	Postgres *pgxpool.Pool
 	models   *models.Queries
-	streams  *typ.SyncMap[uint64, *redis.PubSub]
 }
 
 // New creates a new DB instance.
@@ -41,6 +39,5 @@ func New(ctx context.Context, cfg *config.Config) (*DB, error) {
 		Rdb:      rdb,
 		Postgres: conn,
 		models:   models.New(conn),
-		streams:  new(typ.SyncMap[uint64, *redis.PubSub]),
 	}, nil
 }
