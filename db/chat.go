@@ -5,6 +5,7 @@ import (
 
 	"github.com/harmony-development/legato/db/models"
 	chatv1 "github.com/harmony-development/legato/gen/chat/v1"
+	harmonytypesv1 "github.com/harmony-development/legato/gen/harmonytypes/v1"
 	"github.com/jackc/pgx/v4"
 	"github.com/samber/lo"
 	"github.com/xissy/lexorank"
@@ -16,6 +17,14 @@ const (
 	GuildKindGuild = iota
 	GuildKindRoom
 	GuildKindDM
+)
+
+type ChannelKind int16
+
+const (
+	ChannelKindNormal = iota
+	ChannelKindVoice
+	ChannelKindCategory
 )
 
 func (db *DB) CreateGuild(ctx context.Context, name string, picture *string, ownerID uint64, type_ GuildKind) (models.Guild, error) {
@@ -98,7 +107,36 @@ func (db *DB) GetGuildsById(ctx context.Context, guildIds []uint64) ([]models.Gu
 	}), nil
 }
 
-func (db *DB) CreateChannel(ctx context.Context) {
+func (db *DB) CreateChannel(ctx context.Context, guildID uint64, name string, kind ChannelKind) (models.Channel, error) {
+	topChannel, err := db.models.GetTopChannel(ctx, guildID)
+	pos := lo.Ternary(err == nil, "", topChannel.Position)
+
+	newChannelPos, _ := lexorank.Rank(pos, "")
+
+	channel, err := db.models.CreateChannel(ctx, models.CreateChannelParams{
+		GuildID:  guildID,
+		Name:     name,
+		Kind:     int16(kind),
+		Position: newChannelPos, // TODO: lexorank channels
+	})
+
+	if err := db.PublishChatEvent(ctx, guildID, &chatv1.StreamEvent{
+		Event: &chatv1.StreamEvent_CreatedChannel{
+			CreatedChannel: &chatv1.StreamEvent_ChannelCreated{
+				GuildId:   guildID,
+				ChannelId: channel.ID,
+				Name:      channel.Name,
+				Position: &harmonytypesv1.ItemPosition{
+					ItemId:   topChannel.ID,
+					Position: harmonytypesv1.ItemPosition_POSITION_AFTER,
+				},
+			},
+		},
+	}); err != nil {
+		return models.Channel{}, err
+	}
+
+	return channel, TryWrap(err, "failed to create channel")
 }
 
 func (db *DB) GetChannel(ctx context.Context) {

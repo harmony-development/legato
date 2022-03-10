@@ -271,6 +271,22 @@ func (q *Queries) GetGuildsById(ctx context.Context, dollar_1 []uint64) ([]GetGu
 	return items, nil
 }
 
+const getTopChannel = `-- name: GetTopChannel :one
+select id, position from channels where guild_id = $1 order by position asc limit 1
+`
+
+type GetTopChannelRow struct {
+	ID       uint64
+	Position string
+}
+
+func (q *Queries) GetTopChannel(ctx context.Context, guildID uint64) (GetTopChannelRow, error) {
+	row := q.db.QueryRow(ctx, getTopChannel, guildID)
+	var i GetTopChannelRow
+	err := row.Scan(&i.ID, &i.Position)
+	return i, err
+}
+
 const getTopGuild = `-- name: GetTopGuild :one
 select position from guild_list where user_id = $1 order by position asc limit 1
 `

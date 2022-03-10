@@ -46,8 +46,15 @@ func (v1 *ChatV1) CreateInvite(_ *api.LegatoContext, _ *chatv1.CreateInviteReque
 	panic("not implemented") // TODO: Implement
 }
 
-func (v1 *ChatV1) CreateChannel(_ *api.LegatoContext, _ *chatv1.CreateChannelRequest) (*chatv1.CreateChannelResponse, error) {
-	panic("not implemented") // TODO: Implement
+func (v1 *ChatV1) CreateChannel(c *api.LegatoContext, req *chatv1.CreateChannelRequest) (*chatv1.CreateChannelResponse, error) {
+	channel, err := v1.db.CreateChannel(c, req.GuildId, req.ChannelName, db.ChannelKind(req.Kind))
+	if err != nil {
+		return nil, err
+	}
+
+	return &chatv1.CreateChannelResponse{
+		ChannelId: channel.ID,
+	}, nil
 }
 
 func (v1 *ChatV1) GetGuildList(c *api.LegatoContext, _ *chatv1.GetGuildListRequest) (*chatv1.GetGuildListResponse, error) {

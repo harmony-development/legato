@@ -18,6 +18,9 @@ select guilds.*, array_agg(guild_members.user_id)::bigint[] as owner_ids
 -- name: GetTopGuild :one
 select position from guild_list where user_id = $1 order by position asc limit 1;
 
+-- name: GetTopChannel :one
+select id, position from channels where guild_id = $1 order by position asc limit 1;
+
 -- name: CreateChannel :one
 insert into channels (id, guild_id, name, kind, position) values (generate_id(), $1, $2, $3, $4) returning *;
 
