@@ -30,18 +30,6 @@ func (db *DB) GetUserForSession(ctx context.Context, sessionID string) (uint64, 
 	return res, TryWrap(err, "failed to get user for session")
 }
 
-func (db *DB) PublishAuth(ctx context.Context, session string, msg *gen.AuthMessage) error {
-	msgBytes, err := msg.MarshalVT()
-	if err != nil {
-		return Wrap(err, "failed to marshal auth publish message")
-	}
-
-	return TryWrap(
-		db.Rdb.Publish(ctx, subkey(authStepPrefix, session), string(msgBytes)).Err(),
-		"failed to publish session",
-	)
-}
-
 // SetAuthStep saves to redis the auth session and step the user is on.
 func (db *DB) SetAuthStep(ctx context.Context, sessionID string, step int) error {
 	if err := db.PublishAuth(ctx, sessionID, &gen.AuthMessage{

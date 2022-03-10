@@ -2,11 +2,8 @@ package db
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 
 	"github.com/harmony-development/legato/db/models"
-	chatv1 "github.com/harmony-development/legato/gen/chat/v1"
 	"github.com/jackc/pgx/v4"
 	"github.com/samber/lo"
 	"github.com/xissy/lexorank"
@@ -112,39 +109,4 @@ func (db *DB) RemoveGuildMember(ctx context.Context) {
 }
 
 func (db *DB) RemoveGuildFromList(ctx context.Context) {
-}
-
-func (db *DB) StreamChatEvents(ctx context.Context, userID uint64, guilds []uint64) chan *chatv1.StreamEvent {
-	ch := make(chan *chatv1.StreamEvent)
-
-	go func() {
-		sub := db.Rdb.Subscribe(
-			ctx,
-			append(
-				lo.Map(guilds, func(guildID uint64, _ int) string {
-					return subkey(chatPrefix, strconv.FormatUint(guildID, 10))
-				}),
-				subkey(chatPrefix, strconv.FormatUint(userID, 10)),
-			)...,
-		)
-
-		defer func() {
-			if err := sub.Close(); err != nil {
-				fmt.Println("failed to close auth subscription", err)
-			}
-			close(ch)
-		}()
-
-		for msg := range sub.Channel() {
-			res := &chatv1.StreamEvent{}
-
-			if err := res.UnmarshalVT([]byte(msg.Payload)); err != nil {
-				continue
-			}
-
-			ch <- res
-		}
-	}()
-
-	return ch
 }
