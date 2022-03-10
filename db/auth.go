@@ -105,5 +105,11 @@ func (db *DB) CreateUser(ctx context.Context, email string, username string, pas
 }
 
 func (db *DB) GetUserByID(ctx context.Context, id uint64) (models.User, error) {
-	return db.models.GetUserById(ctx, id)
+	user, err := db.models.GetUserById(ctx, id)
+	return user, TryWrap(err, "failed to get user by id")
+}
+
+func (db *DB) GetUserByEmail(ctx context.Context, email string) (models.GetUserByEmailRow, error) {
+	user, err := db.models.GetUserByEmail(ctx, &email)
+	return user, TryWrap(err, "failed to get user by email")
 }

@@ -3,12 +3,14 @@ package adapter
 
 import (
 	"context"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 	goserver "github.com/harmony-development/hrpc/pkg/go-server"
 	"github.com/harmony-development/legato/adapter/hrpc"
 	"github.com/harmony-development/legato/api/middleware"
+	"github.com/harmony-development/legato/util/panic_fmt"
 )
 
 func RegisterHandler[T context.Context](mid *middleware.MiddlewareHandler, router fiber.Router, handler goserver.MethodHandler[T]) {
@@ -42,15 +44,26 @@ func StreamHandler[T context.Context](h goserver.StreamMethodData[T]) fiber.Hand
 			reqChan := make(chan goserver.VTProtoMessage)
 			sendChan := make(chan goserver.VTProtoMessage)
 			go func() {
-				if err := h.Handler(ctx.(T), reqChan, sendChan); err != nil {
+				defer func() {
 					close(reqChan)
 					close(sendChan)
-				}
+
+					if r := recover(); r != nil {
+						panic_fmt.RecoverError(os.Getenv("RAW_LOG") != "true", r)
+					}
+				}()
+
+				h.Handler(ctx.(T), reqChan, sendChan)
 			}()
 			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						panic_fmt.RecoverError(os.Getenv("RAW_LOG") != "true", r)
+					}
+				}()
+
 				_, msg, err := conn.ReadMessage() // Read the next message from the client.
 				if err != nil {
-					conn.Close()
 					return
 				}
 				hrpcMsg, err := hrpc.UnmarshalHRPC(msg, "application/hrpc", h.Input)

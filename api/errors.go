@@ -43,7 +43,7 @@ func (e *Error) Error() string {
 	return e.HError.HumanMessage
 }
 
-func NewError(code string, humanMessage string) error {
+func NewError(code string, humanMessage string) *Error {
 	return &Error{
 		HError: hrpcv1.Error{
 			Identifier:   code,

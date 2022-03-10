@@ -32,9 +32,8 @@ func (h *MiddlewareHandler) Auth(path string) fiber.Handler {
 			return err
 		}
 
-		ctx, _ := c.UserContext().(api.LegatoContext)
+		ctx, _ := c.UserContext().(*api.LegatoContext)
 		ctx.UserID = userID
-
 		// nolint
 		return c.Next()
 	}

@@ -29,7 +29,7 @@ func New(db *db.DB, cfg *config.Config) *AuthV1 {
 	}
 
 	inst.formHandlers = map[AuthStepType]formHandler{
-		// LoginStep:    inst.handleLogin,
+		LoginStep:    inst.handleLogin,
 		RegisterStep: inst.handleRegister,
 	}
 
@@ -44,19 +44,19 @@ func (v1 *AuthV1) generateToken() string {
 	return randstr.Hex(32)
 }
 
-func (v1 *AuthV1) Federate(c api.LegatoContext, _ *authv1.FederateRequest) (*authv1.FederateResponse, error) {
+func (v1 *AuthV1) Federate(c *api.LegatoContext, _ *authv1.FederateRequest) (*authv1.FederateResponse, error) {
 	panic("not implemented") // TODO: Implement
 }
 
-func (v1 *AuthV1) LoginFederated(_ api.LegatoContext, _ *authv1.LoginFederatedRequest) (*authv1.LoginFederatedResponse, error) {
+func (v1 *AuthV1) LoginFederated(_ *api.LegatoContext, _ *authv1.LoginFederatedRequest) (*authv1.LoginFederatedResponse, error) {
 	panic("not implemented") // TODO: Implement
 }
 
-func (v1 *AuthV1) Key(_ api.LegatoContext, _ *authv1.KeyRequest) (*authv1.KeyResponse, error) {
+func (v1 *AuthV1) Key(_ *api.LegatoContext, _ *authv1.KeyRequest) (*authv1.KeyResponse, error) {
 	panic("not implemented") // TODO: Implement
 }
 
-func (v1 *AuthV1) BeginAuth(c api.LegatoContext, _ *authv1.BeginAuthRequest) (*authv1.BeginAuthResponse, error) {
+func (v1 *AuthV1) BeginAuth(c *api.LegatoContext, _ *authv1.BeginAuthRequest) (*authv1.BeginAuthResponse, error) {
 	authId := v1.generateID()
 
 	if err := v1.db.SetAuthStep(c, authId, int(InitialStep)); err != nil {
@@ -68,7 +68,7 @@ func (v1 *AuthV1) BeginAuth(c api.LegatoContext, _ *authv1.BeginAuthRequest) (*a
 	}, nil
 }
 
-func (v1 *AuthV1) NextStep(c api.LegatoContext, req *authv1.NextStepRequest) (*authv1.NextStepResponse, error) {
+func (v1 *AuthV1) NextStep(c *api.LegatoContext, req *authv1.NextStepRequest) (*authv1.NextStepResponse, error) {
 	step, err := v1.db.GetAuthStep(c, req.AuthId)
 	if err != nil {
 		return nil, err
@@ -107,13 +107,17 @@ func (v1 *AuthV1) NextStep(c api.LegatoContext, req *authv1.NextStepRequest) (*a
 		if f == nil {
 			return nil, api.ErrorStepMismatch
 		}
-		return v1.formHandlers[AuthStepType(step)](c, req.AuthId, f.Fields)
+		handler, ok := v1.formHandlers[AuthStepType(step)]
+		if !ok {
+			return nil, fmt.Errorf("form handler not found for step %w", api.ErrorInternalServerError)
+		}
+		return handler(c, req.AuthId, f.Fields)
 	default:
 		return nil, api.ErrorInternalServerError
 	}
 }
 
-func (v1 *AuthV1) StepBack(c api.LegatoContext, req *authv1.StepBackRequest) (*authv1.StepBackResponse, error) {
+func (v1 *AuthV1) StepBack(c *api.LegatoContext, req *authv1.StepBackRequest) (*authv1.StepBackResponse, error) {
 	step, err := v1.db.GetAuthStep(c, req.AuthId)
 	if err != nil {
 		return nil, err
@@ -140,11 +144,11 @@ func (v1 *AuthV1) StepBack(c api.LegatoContext, req *authv1.StepBackRequest) (*a
 	}, nil
 }
 
-func (v1 *AuthV1) CheckLoggedIn(_ api.LegatoContext, _ *authv1.CheckLoggedInRequest) (*authv1.CheckLoggedInResponse, error) {
+func (v1 *AuthV1) CheckLoggedIn(_ *api.LegatoContext, _ *authv1.CheckLoggedInRequest) (*authv1.CheckLoggedInResponse, error) {
 	return nil, nil
 }
 
-func (v1 *AuthV1) StreamSteps(ctx api.LegatoContext, stream chan *authv1.StreamStepsRequest, res chan *authv1.StreamStepsResponse) error {
+func (v1 *AuthV1) StreamSteps(ctx *api.LegatoContext, stream chan *authv1.StreamStepsRequest, res chan *authv1.StreamStepsResponse) error {
 	req := <-stream
 	step := v1.db.StreamUserSteps(ctx, req.AuthId)
 	for s := range step {

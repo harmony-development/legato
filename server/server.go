@@ -10,10 +10,12 @@ import (
 	"github.com/harmony-development/legato/adapter"
 	"github.com/harmony-development/legato/api"
 	authv1impl "github.com/harmony-development/legato/api/auth/v1"
+	chatv1impl "github.com/harmony-development/legato/api/chat/v1"
 	"github.com/harmony-development/legato/api/middleware"
 	"github.com/harmony-development/legato/config"
 	"github.com/harmony-development/legato/db"
 	authv1 "github.com/harmony-development/legato/gen/auth/v1"
+	chatv1 "github.com/harmony-development/legato/gen/chat/v1"
 )
 
 // Server is an instance of the server.
@@ -36,7 +38,7 @@ func New(config *config.Config) (*Server, error) {
 	}
 
 	app.Use(func(c *fiber.Ctx) error {
-		c.SetUserContext(api.LegatoContext{
+		c.SetUserContext(&api.LegatoContext{
 			Context: c.Context(),
 		})
 		return c.Next()
@@ -50,11 +52,16 @@ func New(config *config.Config) (*Server, error) {
 	middlewareHandler := middleware.NewHandler(db)
 	app.Use(middlewareHandler.ErrorHandler())
 
-	authService := &authv1.AuthServiceHandler[api.LegatoContext]{
+	authService := &authv1.AuthServiceHandler[*api.LegatoContext]{
 		Impl: authv1impl.New(db, config),
 	}
 
-	adapter.RegisterHandler[api.LegatoContext](middlewareHandler, app, authService)
+	chatService := &chatv1.ChatServiceHandler[*api.LegatoContext]{
+		Impl: chatv1impl.New(db),
+	}
+
+	adapter.RegisterHandler[*api.LegatoContext](middlewareHandler, app, authService)
+	adapter.RegisterHandler[*api.LegatoContext](middlewareHandler, app, chatService)
 
 	return &Server{
 		app,

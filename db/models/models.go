@@ -7,6 +7,50 @@ import (
 	"time"
 )
 
+type Channel struct {
+	ID        uint64
+	CreatedAt time.Time
+	GuildID   sql.NullInt64
+	Name      string
+	Kind      int16
+	Position  string
+}
+
+type Guild struct {
+	ID          uint64
+	Name        string
+	Picture     *string
+	Type        int16
+	BannedUsers []uint64
+	Created     time.Time
+}
+
+type GuildList struct {
+	UserID   uint64
+	GuildID  uint64
+	Host     string
+	Position string
+}
+
+type GuildMember struct {
+	UserID    uint64
+	GuildID   uint64
+	OwnsGuild bool
+	Joined    time.Time
+}
+
+type Message struct {
+	ID          uint64
+	ChannelID   sql.NullInt64
+	CreatedAt   time.Time
+	ReplyToID   sql.NullInt64
+	AuthorID    uint64
+	EditedAt    sql.NullTime
+	Content     string
+	Override    sql.NullString
+	Attachments []string
+}
+
 type User struct {
 	ID           uint64
 	Username     string
