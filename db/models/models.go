@@ -10,7 +10,7 @@ import (
 type Channel struct {
 	ID        uint64
 	CreatedAt time.Time
-	GuildID   sql.NullInt64
+	GuildID   uint64
 	Name      string
 	Kind      int16
 	Position  string

@@ -5,7 +5,6 @@ package models
 
 import (
 	"context"
-	"database/sql"
 	"time"
 )
 
@@ -50,7 +49,7 @@ insert into channels (id, guild_id, name, kind, position) values (generate_id(),
 `
 
 type CreateChannelParams struct {
-	GuildID  sql.NullInt64
+	GuildID  uint64
 	Name     string
 	Kind     int16
 	Position string
@@ -121,7 +120,7 @@ const getChannelList = `-- name: GetChannelList :many
 select id, created_at, guild_id, name, kind, position from channels where guild_id = $1 order by position desc
 `
 
-func (q *Queries) GetChannelList(ctx context.Context, guildID sql.NullInt64) ([]Channel, error) {
+func (q *Queries) GetChannelList(ctx context.Context, guildID uint64) ([]Channel, error) {
 	rows, err := q.db.Query(ctx, getChannelList, guildID)
 	if err != nil {
 		return nil, err

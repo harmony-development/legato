@@ -109,8 +109,24 @@ func (v1 *ChatV1) GetGuildMembers(_ *api.LegatoContext, _ *chatv1.GetGuildMember
 	panic("not implemented") // TODO: Implement
 }
 
-func (v1 *ChatV1) GetGuildChannels(_ *api.LegatoContext, _ *chatv1.GetGuildChannelsRequest) (*chatv1.GetGuildChannelsResponse, error) {
-	panic("not implemented") // TODO: Implement
+func (v1 *ChatV1) GetGuildChannels(c *api.LegatoContext, req *chatv1.GetGuildChannelsRequest) (*chatv1.GetGuildChannelsResponse, error) {
+	channels, err := v1.db.GetChannelList(c, req.GuildId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &chatv1.GetGuildChannelsResponse{
+		Channels: lo.Map(channels, func(c models.Channel, _ int) *chatv1.ChannelWithId {
+			return &chatv1.ChannelWithId{
+				ChannelId: c.ID,
+				Channel: &chatv1.Channel{
+					ChannelName: c.Name,
+					Kind:        chatv1.ChannelKind(c.Kind),
+					Metadata:    nil,
+				},
+			}
+		}),
+	}, nil
 }
 
 func (v1 *ChatV1) GetChannelMessages(_ *api.LegatoContext, _ *chatv1.GetChannelMessagesRequest) (*chatv1.GetChannelMessagesResponse, error) {
@@ -265,6 +281,27 @@ func (v1 *ChatV1) GiveUpOwnership(_ *api.LegatoContext, _ *chatv1.GiveUpOwnershi
 	panic("not implemented") // TODO: Implement
 }
 
-func (v1 *ChatV1) StreamEvents(_ *api.LegatoContext, _ chan *chatv1.StreamEventsRequest, _ chan *chatv1.StreamEventsResponse) error {
-	panic("not implemented") // TODO: Implement
+func (v1 *ChatV1) StreamEvents(c *api.LegatoContext, reqs chan *chatv1.StreamEventsRequest, resp chan *chatv1.StreamEventsResponse) error {
+	guilds, err := v1.db.GetGuildList(c, c.UserID)
+	if err != nil {
+		return err
+	}
+
+	streamEvents := v1.db.StreamChatEvents(
+		c,
+		c.UserID,
+		lo.Map(guilds, func(row models.GetGuildListRow, _ int) uint64 {
+			return row.GuildID
+		}),
+	)
+
+	for ev := range streamEvents {
+		resp <- &chatv1.StreamEventsResponse{
+			Event: &chatv1.StreamEventsResponse_Chat{
+				Chat: ev,
+			},
+		}
+	}
+
+	return api.ErrorInternalServerError
 }

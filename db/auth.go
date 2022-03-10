@@ -76,8 +76,15 @@ func (db *DB) StreamUserSteps(ctx context.Context, sessionID string) chan *gen.A
 	ch := make(chan *gen.AuthMessage)
 
 	go func() {
-		sub := db.Rdb.Subscribe(ctx, subkey(authStepPrefix, sessionID)).Channel()
-		for msg := range sub {
+		sub := db.Rdb.Subscribe(ctx, subkey(authStepPrefix, sessionID))
+		defer func() {
+			if err := sub.Close(); err != nil {
+				fmt.Println("failed to close auth subscription", err)
+			}
+			close(ch)
+		}()
+
+		for msg := range sub.Channel() {
 			res := &gen.AuthMessage{}
 
 			if err := res.UnmarshalVT([]byte(msg.Payload)); err != nil {
@@ -86,8 +93,6 @@ func (db *DB) StreamUserSteps(ctx context.Context, sessionID string) chan *gen.A
 
 			ch <- res
 		}
-
-		close(ch)
 	}()
 
 	return ch

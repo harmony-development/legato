@@ -52,7 +52,7 @@ create table guild_list (
 create table if not exists channels (
 	id bigint primary key unique not null,
 	created_at timestamp not null default (current_timestamp at time zone 'utc'),
-	guild_id bigint references guilds (id) on delete cascade,
+	guild_id bigint not null references guilds (id) on delete cascade,
 	name text not null,
 	kind smallint not null,
 	position text not null
