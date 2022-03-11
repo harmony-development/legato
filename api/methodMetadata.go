@@ -76,4 +76,10 @@ var MethodMetadata = map[string]*harmonytypesv1.HarmonyMethodMetadata{
 	"protocol.chat.v1.ChatService/GrantOwnership":           meta(true, false, false, ""),
 	"protocol.chat.v1.ChatService/GiveUpOwnership":          meta(true, false, false, ""),
 	"protocol.chat.v1.ChatService/StreamEvents":             meta(true, false, false, ""),
+
+	"protocol.profile.v1.ProfileService/GetProfile":    meta(true, false, false, ""),
+	"protocol.profile.v1.ProfileService/UpdateProfile": meta(true, false, false, ""),
+	"protocol.profile.v1.ProfileService/UpdateStatus":  meta(true, false, false, ""),
+	"protocol.profile.v1.ProfileService/GetAppData":    meta(true, false, false, ""),
+	"protocol.profile.v1.ProfileService/SetAppData":    meta(true, false, false, ""),
 }

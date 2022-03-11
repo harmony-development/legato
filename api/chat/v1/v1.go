@@ -112,8 +112,17 @@ func (v1 *ChatV1) GetGuildInvites(_ *api.LegatoContext, _ *chatv1.GetGuildInvite
 	panic("not implemented") // TODO: Implement
 }
 
-func (v1 *ChatV1) GetGuildMembers(_ *api.LegatoContext, _ *chatv1.GetGuildMembersRequest) (*chatv1.GetGuildMembersResponse, error) {
-	panic("not implemented") // TODO: Implement
+func (v1 *ChatV1) GetGuildMembers(c *api.LegatoContext, req *chatv1.GetGuildMembersRequest) (*chatv1.GetGuildMembersResponse, error) {
+	members, err := v1.db.GetGuildMembers(c, req.GuildId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &chatv1.GetGuildMembersResponse{
+		Members: lo.Map(members, func(m models.GetGuildMembersRow, _ int) uint64 {
+			return m.UserID
+		}),
+	}, nil
 }
 
 func (v1 *ChatV1) GetGuildChannels(c *api.LegatoContext, req *chatv1.GetGuildChannelsRequest) (*chatv1.GetGuildChannelsResponse, error) {

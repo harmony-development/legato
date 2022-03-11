@@ -147,7 +147,9 @@ func (db *DB) GetChannelList(ctx context.Context, guildID uint64) ([]models.Chan
 	return channels, TryWrap(err, "failed to get channel list for %d", guildID)
 }
 
-func (db *DB) GetGuildMembers(ctx context.Context) {
+func (db *DB) GetGuildMembers(ctx context.Context, guildID uint64) ([]models.GetGuildMembersRow, error) {
+	members, err := db.models.GetGuildMembers(ctx, guildID)
+	return members, TryWrap(err, "failed to get guild members")
 }
 
 func (db *DB) IsGuildMember(ctx context.Context) {
@@ -156,7 +158,15 @@ func (db *DB) IsGuildMember(ctx context.Context) {
 func (db *DB) GetGuildMember(ctx context.Context) {
 }
 
-func (db *DB) HasSharedGuilds(ctx context.Context) {
+func (db *DB) HasSharedGuilds(ctx context.Context, user1 uint64, user2 uint64) (bool, error) {
+	row := db.Postgres.QueryRow(ctx, `
+	select 
+		(select array_agg(guild_id) from guild_members where guild_members.user_id = $1) 
+		&& (select array_agg(guild_id) from guild_members where guild_members.user_id = $2) 
+	as exists`, user1, user2)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, TryWrap(err, "failed to check if users share guilds")
 }
 
 func (db *DB) RemoveGuildMember(ctx context.Context, guildID uint64, userID uint64, reason chatv1.LeaveReason) error {

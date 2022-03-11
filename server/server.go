@@ -12,10 +12,12 @@ import (
 	authv1impl "github.com/harmony-development/legato/api/auth/v1"
 	chatv1impl "github.com/harmony-development/legato/api/chat/v1"
 	"github.com/harmony-development/legato/api/middleware"
+	profilev1impl "github.com/harmony-development/legato/api/profile/v1"
 	"github.com/harmony-development/legato/config"
 	"github.com/harmony-development/legato/db"
 	authv1 "github.com/harmony-development/legato/gen/auth/v1"
 	chatv1 "github.com/harmony-development/legato/gen/chat/v1"
+	profilev1 "github.com/harmony-development/legato/gen/profile/v1"
 )
 
 // Server is an instance of the server.
@@ -60,8 +62,13 @@ func New(config *config.Config) (*Server, error) {
 		Impl: chatv1impl.New(db),
 	}
 
+	profileService := &profilev1.ProfileServiceHandler[*api.LegatoContext]{
+		Impl: profilev1impl.New(db),
+	}
+
 	adapter.RegisterHandler[*api.LegatoContext](middlewareHandler, app, authService)
 	adapter.RegisterHandler[*api.LegatoContext](middlewareHandler, app, chatService)
+	adapter.RegisterHandler[*api.LegatoContext](middlewareHandler, app, profileService)
 
 	return &Server{
 		app,
